@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Controle de Extras</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<style>
+  :root {
+    --amarelo: #F2C200;
+    --preto: #1a1a1a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Arial, sans-serif;
+    background: #fdfdf5;
+    color: var(--preto);
+    padding-bottom: 60px;
+  }
+  header {
+    background: var(--preto);
+    color: var(--amarelo);
+    padding: 16px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 18px;
+  }
+  .container { padding: 14px; }
+  .data-fields {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .data-fields input {
+    width: 70px;
+    padding: 6px;
+    text-align: center;
+    border: 1px solid var(--amarelo);
+    border-radius: 4px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 18px;
+    background: #fffdf0;
+  }
+  th {
+    background: var(--amarelo);
+    color: var(--preto);
+    font-size: 11px;
+    padding: 8px 4px;
+    border: 1px solid #d4ab00;
+  }
+  td {
+    border: 1px solid #eadfa0;
+    padding: 4px;
+    text-align: center;
+  }
+  td input, td select {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 13px;
+    padding: 4px 2px;
+  }
+  td input:focus { background: #fff8dc; outline: none; }
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  button {
+    background: var(--amarelo);
+    border: 1px solid #d4ab00;
+    color: var(--preto);
+    font-weight: bold;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button.secondary {
+    background: var(--preto);
+    color: var(--amarelo);
+  }
+  button.danger {
+    background: #e05555;
+    color: white;
+    border-color: #c04444;
+  }
+  h2 {
+    font-size: 15px;
+    background: var(--preto);
+    color: var(--amarelo);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 24px;
+  }
+  .valor-final {
+    background: var(--amarelo);
+    border: 1px solid #d4ab00;
+    border-radius: 6px;
+    padding: 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 12px;
+  }
+  .valor-final span:last-child { font-size: 20px; }
+  .resumo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .resumo-item {
+    background: #fffdf0;
+    border: 1px solid var(--amarelo);
+    border-radius: 6px;
+    padding: 10px;
+    text-align: center;
+  }
+  .resumo-item .label { font-size: 11px; color: #555; }
+  .resumo-item .valor { font-size: 16px; font-weight: bold; }
+  #status { text-align:center; font-size:12px; color:#888; margin-top:6px; }
+  .report-list { font-size: 13px; }
+  .report-item {
+    border-bottom: 1px solid #eadfa0;
+    padding: 8px 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+  #loginScreen {
+    min-height: 100vh;
+    background: var(--preto);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  #loginScreen h1 {
+    color: var(--amarelo);
+    font-size: 20px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+  #loginScreen select, #loginScreen input {
+    width: 100%;
+    max-width: 280px;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid var(--amarelo);
+    font-size: 15px;
+    text-align: center;
+  }
+  #loginScreen select:disabled {
+    opacity: 0.4;
+  }
+  #loginScreen button {
+    width: 100%;
+    max-width: 280px;
+    padding: 12px;
+  }
+  #loginError {
+    color: #ff6b6b;
+    font-size: 13px;
+    margin-top: 10px;
+    min-height: 16px;
+  }
+  #appContent { display: none; }
+  #userBar {
+    background: #2a2a2a;
+    color: var(--amarelo);
+    font-size: 12px;
+    padding: 8px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  #userBar button {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+  .assinar-btn {
+    background: #eee;
+    color: #999;
+    font-size: 20px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+  }
+  .check-confirmado {
+    font-size: 20px;
+    cursor: pointer;
+    display: block;
+  }
+  .confirmado-nome {
+    font-size: 9px;
+    color: #555;
+    display: block;
+  }
+  .atalhos-data {
+    display: flex;
+    gap: 6px;
+    justify-content: center;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .atalhos-data button {
+    background: #2a2a2a;
+    color: var(--amarelo);
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: none;
+  }
+  .filtro-relatorio {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .filtro-relatorio button {
+    background: var(--preto);
+    color: var(--amarelo);
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    border: none;
+  }
+  .filtro-relatorio button.ativo {
+    background: var(--amarelo);
+    color: var(--preto);
+  }
+  #outroPeriodoBox {
+    display: none;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  #outroPeriodoBox input {
+    padding: 8px;
+    border: 1px solid var(--amarelo);
+    border-radius: 6px;
+  }
+  #cabecalhoPDF { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #relatorio, #relatorio * { visibility: visible; }
+    #relatorio {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      display: block !important;
+    }
+    .filtro-relatorio, #outroPeriodoBox, .btn-row { display: none !important; }
+    #cabecalhoPDF {
+      display: block !important;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    #cabecalhoPDF h1 { font-size: 18px; margin: 0; }
+    #cabecalhoPDF p { font-size: 12px; color: #555; margin: 4px 0 0; }
+  }
+  #avisoFirebase {
+    display: none;
+    background: #e05555;
+    color: white;
+    font-size: 12px;
+    padding: 10px;
+    text-align: center;
+  }
+  #creditoDev {
+    text-align: center;
+    font-size: 10px;
+    color: #999;
+    padding: 12px 0 4px;
+  }
+  #linkDev {
+    color: #666;
+    font-size: 11px;
+    margin-top: 16px;
+    text-decoration: underline;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  #devLoginScreen, #devPanel {
+    display: none;
+    min-height: 100vh;
+    background: var(--preto);
+    padding: 20px;
+  }
+  #devLoginScreen {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  #devLoginScreen h1 { color: var(--amarelo); font-size: 18px; text-align:center; }
+  #devLoginScreen input {
+    width: 100%; max-width: 280px; padding: 12px; margin-bottom: 12px;
+    border-radius: 6px; border: 1px solid var(--amarelo); text-align: center;
+  }
+  #devLoginScreen button { width: 100%; max-width: 280px; padding: 12px; }
+  #devPanel h1 { color: var(--amarelo); font-size: 18px; margin-bottom: 4px; }
+  #devPanel h2 { font-size: 14px; }
+  .dev-empresa-box {
+    background: #2a2a2a;
+    border: 1px solid var(--amarelo);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 14px;
+  }
+  .dev-empresa-box input {
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #555;
+    margin-bottom: 6px;
+    width: 100%;
+  }
+  .dev-usuario-linha {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .dev-usuario-linha input[type="text"], .dev-usuario-linha input[type="password"] {
+    flex: 1;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid #555;
+  }
+  .dev-usuario-linha input[type="color"] {
+    width: 36px; height: 32px; padding: 0; border: none;
+  }
+  .dev-aparencia-linha {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    color: white;
+    font-size: 13px;
+  }
+  .dev-aparencia-linha input[type="text"] {
+    flex: 1; padding: 8px; border-radius: 4px; border: 1px solid #555;
+  }
+  .dev-aparencia-linha input[type="color"] {
+    width: 40px; height: 34px; padding: 0; border: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="avisoFirebase">⚠️ Banco de dados ainda não configurado — os dados não serão salvos. Avise o desenvolvedor.</div>
+
+<div id="loginScreen">
+  <h1>Controle de Extras<br>Acesso Restrito</h1>
+  <select id="loginEmpresa">
+    <option value="">Selecione a empresa</option>
+  </select>
+  <select id="loginUser" disabled>
+    <option value="">Selecione seu nome</option>
+  </select>
+  <input type="password" id="loginPass" placeholder="Senha">
+  <button onclick="tentarLogin()">Entrar</button>
+  <div id="loginError"></div>
+  <div style="color:#666; font-size:10px; margin-top:20px;">Desenvolvido por Lins</div>
+  <button id="linkDev" onclick="abrirDevLogin()">Acesso do desenvolvedor</button>
+</div>
+
+<div id="devLoginScreen">
+  <h1>Painel do Desenvolvedor</h1>
+  <input type="password" id="devSenha" placeholder="Senha de desenvolvedor">
+  <button onclick="tentarDevLogin()">Entrar</button>
+  <button class="secondary" onclick="fecharDevLogin()">Voltar</button>
+  <div id="devLoginError" style="color:#ff6b6b; font-size:12px; margin-top:10px;"></div>
+</div>
+
+<div id="devPanel">
+  <h1>⚙️ Painel do Desenvolvedor</h1>
+  <p style="color:#aaa; font-size:12px; margin-bottom:20px;">Aqui você edita empresas, gestores e aparência do app sem mexer no código.</p>
+
+  <h2 style="color:var(--amarelo);">Aparência</h2>
+  <div class="dev-aparencia-linha">
+    <span>Nome do app:</span>
+    <input type="text" id="devNomeApp">
+  </div>
+  <div class="dev-aparencia-linha">
+    <span>Cor principal:</span>
+    <input type="color" id="devCorAmarelo">
+  </div>
+  <div class="dev-aparencia-linha">
+    <span>Cor escura:</span>
+    <input type="color" id="devCorPreto">
+  </div>
+
+  <h2 style="color:var(--amarelo);">Empresas e Gestores</h2>
+  <div id="devEmpresasLista"></div>
+  <button class="secondary" onclick="devAdicionarEmpresa()">+ Nova Empresa</button>
+
+  <div class="btn-row" style="margin-top:20px;">
+    <button onclick="devSalvarConfig()">💾 Salvar tudo</button>
+    <button class="secondary" onclick="fecharDevPanel()">Sair do painel</button>
+  </div>
+  <div id="devStatus" style="color:#aaa; font-size:12px; margin-top:10px; text-align:center;"></div>
+</div>
+
+<div id="appContent">
+<header>Controle de Extras</header>
+<div id="userBar">
+  <span id="userLabel"></span>
+  <button class="secondary" onclick="sair()">Sair</button>
+</div>
+
+<div class="container">
+
+  <div class="atalhos-data">
+    <button onclick="irParaHoje()">Hoje</button>
+    <button onclick="irParaOntem()">Ontem</button>
+  </div>
+
+  <div class="data-fields">
+    <span>Dia:</span><input id="dia" maxlength="2" placeholder="DD">
+    <span>Mês:</span><input id="mes" maxlength="2" placeholder="MM">
+    <span>Ano:</span><input id="ano" maxlength="4" placeholder="AAAA">
+  </div>
+
+  <h2>Funcionários</h2>
+  <table id="tabelaFunc">
+    <thead>
+      <tr>
+        <th>Nome + PIX</th>
+        <th>Função</th>
+        <th>Entrada/Almoço</th>
+        <th>Saída</th>
+        <th>Valor</th>
+        <th>Pago</th>
+        <th>Restante</th>
+        <th>Confirmação</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="corpoFunc"></tbody>
+  </table>
+  <div class="btn-row">
+    <button onclick="addLinhaFunc()">+ Funcionário</button>
+  </div>
+
+  <h2>Horas Extras</h2>
+  <table id="tabelaExtra">
+    <thead>
+      <tr>
+        <th>Funcionário</th>
+        <th>Horas Extras</th>
+        <th>Valor</th>
+        <th>Pago</th>
+        <th>Restante</th>
+        <th>Confirmação</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="corpoExtra"></tbody>
+  </table>
+  <div class="btn-row">
+    <button onclick="addLinhaExtra()">+ Hora Extra</button>
+  </div>
+
+  <div class="valor-final">
+    <span>VALOR FINAL (a pagar)</span>
+    <span id="valorFinal">R$ 0,00</span>
+  </div>
+
+  <div class="btn-row" style="margin-top:16px;">
+    <button class="secondary" onclick="salvarDia()">💾 Salvar dia</button>
+    <button class="secondary" onclick="gerarRelatorio()">📊 Ver relatório</button>
+    <button class="danger" onclick="limparTudo()">Limpar</button>
+  </div>
+
+  <div id="status"></div>
+
+  <div id="relatorio" style="display:none;">
+    <div id="cabecalhoPDF">
+      <h1 id="pdfEmpresa">Relatório</h1>
+      <p id="pdfPeriodo"></p>
+      <p id="pdfGeradoPor"></p>
+    </div>
+    <h2>Relatório Geral</h2>
+    <div class="filtro-relatorio">
+      <button class="ativo" onclick="filtrarRelatorio('todos', this)">Todo o período</button>
+      <button onclick="filtrarRelatorio('mes', this)">Este mês</button>
+      <button onclick="filtrarRelatorio('semana', this)">Esta semana</button>
+      <button onclick="filtrarRelatorio('hoje', this)">Hoje</button>
+      <button onclick="abrirOutroPeriodo(this)">Outro período</button>
+    </div>
+    <div id="outroPeriodoBox">
+      <input type="date" id="dataEspecifica">
+      <button onclick="filtrarPorDataEspecifica()">Filtrar</button>
+    </div>
+    <div class="btn-row">
+      <button class="secondary" onclick="exportarPDF()">📄 Exportar PDF</button>
+    </div>
+    <div class="resumo">
+      <div class="resumo-item"><div class="label">Total registrado</div><div class="valor" id="repTotal">R$ 0,00</div></div>
+      <div class="resumo-item"><div class="label">Total pago</div><div class="valor" id="repPago">R$ 0,00</div></div>
+      <div class="resumo-item"><div class="label">Total restante</div><div class="valor" id="repRestante">R$ 0,00</div></div>
+      <div class="resumo-item"><div class="label">Dias registrados</div><div class="valor" id="repDias">0</div></div>
+    </div>
+    <h2>Histórico por dia</h2>
+    <div class="report-list" id="repLista"></div>
+
+    <h2>Movimentação de Horas Extras por Dia</h2>
+    <div style="background:#fffdf0; border:1px solid var(--amarelo); border-radius:6px; padding:10px;">
+      <canvas id="graficoExtras" height="220"></canvas>
+    </div>
+  </div>
+
+  <div id="creditoDev">Desenvolvido por Lins</div>
+
+</div>
+</div>
+
+<script>
+// ===================================================================
+// EMPRESAS E USUÁRIOS
+// Para adicionar uma nova empresa, copie o bloco e ajuste os dados.
+// O "slug" (chave, ex: "empresa-2") deve ser único e sem espaços.
+// ===================================================================
+// ===================================================================
+// SENHA DE ACESSO DO DESENVOLVEDOR (painel de configuração)
+// ===================================================================
+const DEV_PASSWORD = "1605dev";
+
+// Config padrão (usada apenas se ainda não houver nada salvo no Firebase)
+let EMPRESAS = {
+  "k08": {
+    nome: "K08",
+    usuarios: {
+      "Lins": { senha: "1605", cor: "#b388ff" },
+      "Vanessa": { senha: "1222", cor: "#4caf50" },
+      "Vinícius": { senha: "1221", cor: "#2196f3" }
+    }
+  }
+};
+
+let APARENCIA = {
+  nomeApp: "Controle de Extras",
+  corAmarelo: "#F2C200",
+  corPreto: "#1a1a1a"
+};
+
+// ===================================================================
+// CONFIGURAÇÃO DO FIREBASE
+// Substitua os valores abaixo pelas chaves do SEU projeto Firebase
+// (Configurações do projeto > Seus aplicativos > ícone Web </>)
+// ===================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyB4esSt84zvzx2K54ptB8Qp5Ef-_uLI4bo",
+  authDomain: "controle-extras.firebaseapp.com",
+  databaseURL: "https://controle-extras-default-rtdb.firebaseio.com",
+  projectId: "controle-extras",
+  storageBucket: "controle-extras.firebasestorage.app",
+  messagingSenderId: "1041652985516",
+  appId: "1:1041652985516:web:45f5a67e02a949ff837909"
+};
+
+let db = null;
+try {
+  if (firebaseConfig.apiKey !== "COLE_AQUI") {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+  } else {
+    document.getElementById('avisoFirebase').style.display = 'block';
+  }
+} catch (e) {
+  document.getElementById('avisoFirebase').style.display = 'block';
+  console.error('Erro ao iniciar Firebase:', e);
+}
+
+let empresaAtual = null;
+let usuarioAtual = null;
+
+function popularEmpresas() {
+  const select = document.getElementById('loginEmpresa');
+  Object.keys(EMPRESAS).forEach(slug => {
+    const opt = document.createElement('option');
+    opt.value = slug;
+    opt.textContent = EMPRESAS[slug].nome;
+    select.appendChild(opt);
+  });
+}
+
+function popularUsuariosDaEmpresa() {
+  const slug = document.getElementById('loginEmpresa').value;
+  const selectUser = document.getElementById('loginUser');
+  selectUser.innerHTML = '<option value="">Selecione seu nome</option>';
+  if (!slug) { selectUser.disabled = true; return; }
+  selectUser.disabled = false;
+  Object.keys(EMPRESAS[slug].usuarios).forEach(nome => {
+    const opt = document.createElement('option');
+    opt.value = nome;
+    opt.textContent = nome;
+    selectUser.appendChild(opt);
+  });
+}
+
+function tentarLogin() {
+  const slug = document.getElementById('loginEmpresa').value;
+  const nome = document.getElementById('loginUser').value;
+  const senha = document.getElementById('loginPass').value;
+  const erro = document.getElementById('loginError');
+
+  if (!slug) { erro.textContent = 'Selecione a empresa.'; return; }
+  if (!nome) { erro.textContent = 'Selecione seu nome.'; return; }
+
+  const usuarios = EMPRESAS[slug].usuarios;
+  if (!usuarios[nome] || usuarios[nome].senha !== senha) { erro.textContent = 'Senha incorreta.'; return; }
+
+  empresaAtual = slug;
+  usuarioAtual = nome;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+  document.getElementById('userLabel').textContent = `${EMPRESAS[slug].nome} — Logado como: ${nome}`;
+  erro.textContent = '';
+}
+
+function sair() {
+  empresaAtual = null;
+  usuarioAtual = null;
+  document.getElementById('loginPass').value = '';
+  document.getElementById('loginEmpresa').value = '';
+  document.getElementById('loginUser').innerHTML = '<option value="">Selecione seu nome</option>';
+  document.getElementById('loginUser').disabled = true;
+  document.getElementById('appContent').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+// ===== PAINEL DO DESENVOLVEDOR =====
+function abrirDevLogin() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('devLoginScreen').style.display = 'flex';
+}
+
+function fecharDevLogin() {
+  document.getElementById('devLoginScreen').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('devSenha').value = '';
+  document.getElementById('devLoginError').textContent = '';
+}
+
+function tentarDevLogin() {
+  const senha = document.getElementById('devSenha').value;
+  if (senha !== DEV_PASSWORD) {
+    document.getElementById('devLoginError').textContent = 'Senha incorreta.';
+    return;
+  }
+  document.getElementById('devLoginScreen').style.display = 'none';
+  document.getElementById('devPanel').style.display = 'block';
+  renderizarPainelDev();
+}
+
+function fecharDevPanel() {
+  document.getElementById('devPanel').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+
+function renderizarPainelDev() {
+  document.getElementById('devNomeApp').value = APARENCIA.nomeApp;
+  document.getElementById('devCorAmarelo').value = APARENCIA.corAmarelo;
+  document.getElementById('devCorPreto').value = APARENCIA.corPreto;
+
+  const lista = document.getElementById('devEmpresasLista');
+  lista.innerHTML = '';
+
+  Object.keys(EMPRESAS).forEach(slug => {
+    const empresa = EMPRESAS[slug];
+    const box = document.createElement('div');
+    box.className = 'dev-empresa-box';
+    box.dataset.slug = slug;
+
+    let usuariosHtml = '';
+    Object.keys(empresa.usuarios).forEach(nomeUsuar
